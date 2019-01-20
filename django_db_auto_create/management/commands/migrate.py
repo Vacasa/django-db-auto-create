@@ -39,7 +39,7 @@ class Command(MigrateCommand):
 
             database_name = database_config["NAME"]
             with handler[DEFAULT_DB_ALIAS].cursor() as cursor:
-                cursor.execute("CREATE DATABASE {}".format(database_name))
+                cursor.execute("CREATE DATABASE `{}`".format(database_name))
 
             self.stdout.write("Auto-created database '{}'".format(database_name))
             return True
