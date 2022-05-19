@@ -34,7 +34,7 @@ class Command(MigrateCommand):
             postgres_database_config = deepcopy(database_config)
             postgres_database_config["NAME"] = "postgres"
             handler = ConnectionHandler(
-                databases={DEFAULT_DB_ALIAS: postgres_database_config}
+                {DEFAULT_DB_ALIAS: postgres_database_config}
             )
 
             database_name = database_config["NAME"]
