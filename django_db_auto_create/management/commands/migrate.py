@@ -13,7 +13,8 @@ class Command(MigrateCommand):
         try:
             super().handle(*args, **options)
         except OperationalError as exception:
-            if re.search(r'FATAL:  database "\S+?" does not exist', str(exception)):
+            # Check for postgres or mysql error message
+            if re.search(r'(FATAL:  database "\S+?" does not exist|Unknown database \'\S+?\')', str(exception)):
                 selected_database = options["database"]
                 database_config = settings.DATABASES[selected_database]
 
@@ -29,17 +30,20 @@ class Command(MigrateCommand):
     def create_db(self, database):
         database_vendor = connections[database].vendor
 
-        if database_vendor == "postgresql":
-            database_config = settings.DATABASES[database]
-            postgres_database_config = deepcopy(database_config)
-            postgres_database_config["NAME"] = "postgres"
-            handler = ConnectionHandler(
-                databases={DEFAULT_DB_ALIAS: postgres_database_config}
-            )
+        # which database can we always connect to?
+        CATALOG_DATABASE_NAME = {
+            'postgresql': 'postgres',
+            'mysql': 'information_schema',
+        }
 
-            database_name = database_config["NAME"]
+        if database_vendor in ["postgresql", "mysql"]:
+            original_database_config = settings.DATABASES[database]
+            autocreate_database_config = deepcopy(original_database_config)
+            autocreate_database_config["NAME"] = CATALOG_DATABASE_NAME[database_vendor]
+            handler = ConnectionHandler({DEFAULT_DB_ALIAS: autocreate_database_config})
+            database_name = original_database_config["NAME"]
             with handler[DEFAULT_DB_ALIAS].cursor() as cursor:
-                cursor.execute("CREATE DATABASE \"{}\"".format(database_name))
+                cursor.execute("CREATE DATABASE {}".format(database_name))
 
             self.stdout.write("Auto-created database '{}'".format(database_name))
             return True
